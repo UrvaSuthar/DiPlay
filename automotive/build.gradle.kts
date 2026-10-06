@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.shilapi.xcertplay"
-        minSdk = 28
+        minSdk = 26 // android-8.1: Android 8.0/8.1 head units (MAXLINK GD230)
         targetSdk = 37
         versionCode = 1201
         versionName = "1.2.1"

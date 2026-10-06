@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 28
+        minSdk = 26 // android-8.1: Android 8.0/8.1 head units (MAXLINK GD230)
     }
 
     compileOptions {
