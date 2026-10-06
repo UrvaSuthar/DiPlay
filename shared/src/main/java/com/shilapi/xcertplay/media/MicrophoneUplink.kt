@@ -11,10 +11,10 @@ import com.shilapi.xcertplay.airplay.AudioCodecKind
 import com.shilapi.xcertplay.airplay.MicrophoneConfig
 import com.shilapi.xcertplay.airplay.MicrophoneCounters
 import com.shilapi.xcertplay.airplay.MicrophonePacketizer
+import com.shilapi.xcertplay.airplay.WildcardBind
 import java.io.Closeable
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -105,9 +105,9 @@ internal class MicrophoneUplink(
         }
 
         val nextSocket = try {
-            DatagramSocket(null).apply {
-                reuseAddress = true
-                bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+            WildcardBind.bind({ DatagramSocket(null) }) { s, address -> // android-8.1: IPv4 fallback
+                s.reuseAddress = true
+                s.bind(InetSocketAddress(address, 0))
             }
         } catch (error: Exception) {
             Log.e(TAG, "microphone socket creation failed", error)
