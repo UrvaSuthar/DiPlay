@@ -79,11 +79,11 @@ jobs:
           script: |
             adb install -r apk/*.apk
             adb logcat -c
-            adb shell monkey -p com.shihab.diplay -c android.intent.category.LAUNCHER 1
+            adb shell monkey -p com.shihab.diplay.hudtest -c android.intent.category.LAUNCHER 1
             sleep 20
             adb logcat -d > logcat.txt
-            adb shell pidof com.shihab.diplay
-            ! grep -A20 'FATAL EXCEPTION' logcat.txt | grep -q 'com.shihab.diplay'
+            adb shell pidof com.shihab.diplay.hudtest
+            ! grep -A20 'FATAL EXCEPTION' logcat.txt | grep -q 'com.shihab.diplay.hudtest'
       - if: always()
         uses: actions/upload-artifact@v4
         with:
