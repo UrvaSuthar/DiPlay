@@ -57,3 +57,35 @@ jobs:
           path: mobile/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
           retention-days: 14
+  smoke:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: actions/download-artifact@v4
+        with:
+          name: DiPlay-android81-debug
+          path: apk
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 27
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: |
+            adb install -r apk/*.apk
+            adb logcat -c
+            adb shell monkey -p com.shihab.diplay -c android.intent.category.LAUNCHER 1
+            sleep 20
+            adb logcat -d > logcat.txt
+            adb shell pidof com.shihab.diplay
+            ! grep -A20 'FATAL EXCEPTION' logcat.txt | grep -q 'com.shihab.diplay'
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android81-smoke-logcat
+          path: logcat.txt
