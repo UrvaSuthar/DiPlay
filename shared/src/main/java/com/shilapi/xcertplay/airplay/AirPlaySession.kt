@@ -787,9 +787,10 @@ class AirPlaySession(
     }
 
     private fun openKeepAlive(): Int {
-        val socket = DatagramSocket(null)
-        socket.reuseAddress = true
-        socket.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
+        val socket = WildcardBind.bind({ DatagramSocket(null) }) { s, address -> // android-8.1: IPv4 fallback
+            s.reuseAddress = true
+            s.bind(InetSocketAddress(address, 0))
+        }
         keepAliveSocket = socket
         keepAliveThread = Thread({ runKeepAlive(socket) }, "airplay-keepalive").apply {
             isDaemon = true
@@ -810,7 +811,9 @@ class AirPlaySession(
     }
 
     private fun openEvent(): Int {
-        val server = ServerSocket(0, 50, InetAddress.getByName("::"))
+        val server = WildcardBind.bind({ ServerSocket() }) { s, address -> // android-8.1: IPv4 fallback
+            s.bind(InetSocketAddress(address, 0), 50)
+        }
         eventServer = server
         spawnEvent("airplay-event-accept") { acceptEvent(server) }
         return server.localPort

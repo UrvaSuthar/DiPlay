@@ -4,7 +4,6 @@ import java.io.Closeable
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
-import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -183,10 +182,10 @@ class AudioStream(
     }
 
     private fun bindAnyPort(): DatagramSocket {
-        val socket = DatagramSocket(null)
-        socket.reuseAddress = true
-        socket.bind(InetSocketAddress(InetAddress.getByName("::"), 0))
-        return socket
+        return WildcardBind.bind({ DatagramSocket(null) }) { s, address -> // android-8.1: IPv4 fallback
+            s.reuseAddress = true
+            s.bind(InetSocketAddress(address, 0))
+        }
     }
 
     private fun readU32Be(source: ByteArray, offset: Int): Int =
