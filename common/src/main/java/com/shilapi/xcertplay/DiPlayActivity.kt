@@ -1123,13 +1123,15 @@ class DiPlayActivity : ComponentActivity() {
 
     private fun wirelessLinkControls(parent: LinearLayout) {
         val mode = if (pendingCarHotspotSetup) WirelessHotspotMode.MANUAL else AirPlayPersistence.loadWirelessHotspotMode(this)
-        val modes = listOf(WirelessHotspotMode.MANUAL, WirelessHotspotMode.WIFI_P2P, WirelessHotspotMode.EXISTING_WIFI)
-        val titles = listOf(getString(R.string.built_in_car_hotspot), getString(R.string.wifi_direct), getString(R.string.existing_wifi_title))
-        val descriptions = listOf(
-            getString(R.string.hotspot_mode_manual_desc),
-            getString(R.string.hotspot_mode_p2p_desc),
-            getString(R.string.existing_wifi_description)
-        )
+        // android-8.1: no Wi-Fi Direct card below API 28
+        val choicesAll = listOf(
+            Triple(WirelessHotspotMode.MANUAL, getString(R.string.built_in_car_hotspot), getString(R.string.hotspot_mode_manual_desc)),
+            Triple(WirelessHotspotMode.WIFI_P2P, getString(R.string.wifi_direct), getString(R.string.hotspot_mode_p2p_desc)),
+            Triple(WirelessHotspotMode.EXISTING_WIFI, getString(R.string.existing_wifi_title), getString(R.string.existing_wifi_description)),
+        ).filter { it.first != WirelessHotspotMode.WIFI_P2P || AirPlayPersistence.wifiDirectSupported() }
+        val modes = choicesAll.map { it.first }
+        val titles = choicesAll.map { it.second }
+        val descriptions = choicesAll.map { it.third }
         val wide = resources.configuration.screenWidthDp >= 850
         val choices = if (wide) row().apply { gravity = Gravity.TOP } else column()
         parent.addView(choices)

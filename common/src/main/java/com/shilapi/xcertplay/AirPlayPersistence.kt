@@ -282,18 +282,27 @@ object AirPlayPersistence {
             .apply()
     }
 
+    // android-8.1: the Wi-Fi Direct backend needs API 28+ (legacy path uses Android 9 APIs).
+    fun wifiDirectSupported(sdk: Int = Build.VERSION.SDK_INT): Boolean = sdk >= Build.VERSION_CODES.P
+
+    private fun supportedMode(mode: WirelessHotspotMode): WirelessHotspotMode = when {
+        mode == WirelessHotspotMode.LOCAL_ONLY_HOTSPOT -> WirelessHotspotMode.MANUAL
+        mode == WirelessHotspotMode.WIFI_P2P && !wifiDirectSupported() -> WirelessHotspotMode.MANUAL
+        else -> mode
+    }
+
     fun loadWirelessHotspotMode(context: Context): WirelessHotspotMode {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val stored = prefs.getString(KEY_WIRELESS_HOTSPOT_MODE, null)
         val mode = WirelessHotspotMode.entries.firstOrNull { it.name == stored }
             ?: WirelessHotspotMode.MANUAL
-        val supported = if (mode == WirelessHotspotMode.LOCAL_ONLY_HOTSPOT) WirelessHotspotMode.MANUAL else mode
+        val supported = supportedMode(mode)
         if (stored != supported.name) saveWirelessHotspotMode(context, supported)
         return supported
     }
 
     fun saveWirelessHotspotMode(context: Context, mode: WirelessHotspotMode) {
-        val supported = if (mode == WirelessHotspotMode.LOCAL_ONLY_HOTSPOT) WirelessHotspotMode.MANUAL else mode
+        val supported = supportedMode(mode)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_WIRELESS_HOTSPOT_MODE, supported.name)
             .apply()
