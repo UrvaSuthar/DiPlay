@@ -318,7 +318,7 @@ class WifiP2pGroupManager(
         }
         synchronized(legacyChannelLock) {
             if (activeChannel != null) releaseLegacyChannelRestriction(activeChannel)
-            activeChannel?.close()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) activeChannel?.close() // android-8.1: API 27
         }
         activeThread?.quitSafely()
     }
@@ -720,7 +720,10 @@ class WifiP2pGroupManager(
         val fiveGhzSupported = runCatching { wifi?.is5GHzBandSupported }.getOrNull()
         val wifiEnabled = runCatching { wifi?.isWifiEnabled }.getOrNull()
         val locationEnabled = runCatching {
-            appContext.getSystemService(LocationManager::class.java)?.isLocationEnabled
+            // android-8.1: isLocationEnabled is API 28; Wi-Fi Direct is hidden below 28 anyway
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                appContext.getSystemService(LocationManager::class.java)?.isLocationEnabled
+            } else null
         }.getOrNull()
         val required = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.NEARBY_WIFI_DEVICES
             else Manifest.permission.ACCESS_FINE_LOCATION
@@ -827,7 +830,7 @@ class WifiP2pGroupManager(
         }
         synchronized(legacyChannelLock) {
             if (failedChannel != null) releaseLegacyChannelRestriction(failedChannel)
-            failedChannel?.close()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) failedChannel?.close() // android-8.1: API 27
         }
         failedThread?.quitSafely()
     }

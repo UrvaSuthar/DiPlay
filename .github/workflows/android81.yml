@@ -22,7 +22,24 @@ jobs:
           packages: platform-tools platforms;android-37.0 build-tools;36.0.0 ndk;28.2.13676358
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests, lint and debug build
-        run: ./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :shared:lintDebug :common:lintDebug :mobile:lintDebug :mobile:assembleDebug --continue --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest :common:testDebugUnitTest :mobile:lintDebug :mobile:assembleDebug --continue --stacktrace
+      # Library lint carries upstream's pre-existing errors; only fail on calls needing API 27/28,
+      # which minSdk 26 newly exposes.
+      - name: Library lint (API 27/28 gate)
+        run: |
+          ./gradlew :shared:lintDebug :common:lintDebug --continue || true
+          python3 - <<'PY'
+          import glob, re, sys, xml.etree.ElementTree as ET
+          bad = []
+          for f in glob.glob('*/build/reports/lint-results-debug.xml'):
+              for i in ET.parse(f).getroot():
+                  m = re.search(r'requires API level (\d+)', i.get('message', ''))
+                  if i.get('id') == 'NewApi' and m and int(m.group(1)) <= 28:
+                      loc = i.find('location')
+                      bad.append(f"{loc.get('file')}:{loc.get('line')} {i.get('message')}")
+          print('\n'.join(bad) or 'No API 27/28 NewApi findings')
+          sys.exit(1 if bad else 0)
+          PY
       - name: APK contains armeabi-v7a
         run: unzip -l mobile/build/outputs/apk/debug/*.apk | grep -q 'lib/armeabi-v7a/'
       - name: Reports

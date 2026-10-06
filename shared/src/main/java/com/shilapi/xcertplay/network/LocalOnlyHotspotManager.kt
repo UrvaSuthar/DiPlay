@@ -445,7 +445,12 @@ class LocalOnlyHotspotManager(context: Context, private val onDiagnostic: (Strin
         val passphrase = validatePassphrase(security, unquote(configuration.preSharedKey))
         val bssid = configuration.BSSID?.let {
             try {
-                MacAddress.fromString(it)
+                // android-8.1: MacAddress is API 28
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    MacAddress.fromString(it).let { mac -> mac.toString() to mac.toByteArray() }
+                } else {
+                    legacyBssid(it)
+                }
             } catch (failure: IllegalArgumentException) {
                 throw IOException("LocalOnlyHotspot reported an invalid BSSID: $it", failure)
             }
@@ -457,8 +462,8 @@ class LocalOnlyHotspotManager(context: Context, private val onDiagnostic: (Strin
             passphrase = passphrase,
             security = security,
             channel = channel,
-            bssid = bssid?.toString(),
-            bssidBytes = bssid?.toByteArray(),
+            bssid = bssid?.first,
+            bssidBytes = bssid?.second,
             bandLabel = readWifiConfigurationBandLabel(configuration, channel),
         )
     }
@@ -826,5 +831,13 @@ class LocalOnlyHotspotManager(context: Context, private val onDiagnostic: (Strin
         const val MULTICAST_LOCK_TAG = "xcertplay-local-only-hotspot-mdns"
         const val NANOS_PER_MILLISECOND = 1_000_000L
         val INTERFACE_POLL_NANOS: Long = TimeUnit.MILLISECONDS.toNanos(100)
+    }
+
+    /** android-8.1: API 26/27 parse of `aa:bb:cc:dd:ee:ff`; throws IllegalArgumentException like MacAddress. */
+    private fun legacyBssid(value: String): Pair<String, ByteArray> {
+        val parts = value.split(':')
+        require(parts.size == 6 && parts.all { it.length == 2 }) { "not a MAC address: $value" }
+        val bytes = ByteArray(6) { parts[it].toInt(16).toByte() }
+        return bytes.joinToString(":") { "%02x".format(it.toInt() and 0xff) } to bytes
     }
 }

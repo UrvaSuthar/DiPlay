@@ -48,6 +48,11 @@ internal class BydStandaloneHudOutput private constructor(context: Context) {
         fun diagnostics(context: Context): String = buildString {
             appendLine("standaloneHudAvailable=${available(context)} sdk=${Build.VERSION.SDK_INT}")
             appendLine("firmware=${Build.FINGERPRINT}")
+            // android-8.1: longVersionCode/signingInfo are API 28
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                appendLine("receiverMetadataUnavailable=sdk")
+                return@buildString
+            }
             runCatching {
                 val info = context.packageManager.getPackageInfo(TARGET.packageName, PackageManager.GET_SIGNING_CERTIFICATES)
                 val receiver = context.packageManager.getReceiverInfo(TARGET, 0)
